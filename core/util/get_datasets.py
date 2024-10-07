@@ -4,7 +4,9 @@ import numpy as np
 from core.util.io import read_csv
 
 
-def apply_sliding_window(timeseries: np.ndarray, n: int) -> tuple[list, list]:
+def apply_sliding_window(
+    timeseries: np.ndarray, n: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Apply sliding window of size n.
 
     Arguments:
@@ -23,7 +25,7 @@ def apply_sliding_window(timeseries: np.ndarray, n: int) -> tuple[list, list]:
     for i in range(n, len(timeseries)):
         x.append(timeseries[i - n : i])
         y.append([timeseries[i]])
-    return x, y
+    return np.array(x), np.array(y)
 
 
 def get_trefor_timeseries() -> np.ndarray:
