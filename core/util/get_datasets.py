@@ -17,9 +17,7 @@ def apply_sliding_window(timeseries: np.ndarray, n: int) -> tuple[list, list]:
     x = []
     y = []
 
-    # Starting at the index corresponding to the first target (n + 1) add
-    # n previous values to features (x) and the target to (y), repeat this up to
-    # the length of the timeseries array.
+    # Add n datapoints to x then add target to y.
     for i in range(n, len(timeseries)):
         x.append(timeseries[i - n : i])
         y.append([timeseries[i]])
