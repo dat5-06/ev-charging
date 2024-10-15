@@ -77,7 +77,7 @@ def save_fig(file_path: str, force: bool = False) -> None:
 def get_project_root() -> Path:
     """Return path of the project root directory."""
     cur_path = Path(__file__).resolve()
-    root_dir = "ev-charging"
+    root_dir = "zap"
 
     # Traverse up the directories until root directory is reached
     for parent in cur_path.parents:
