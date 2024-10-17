@@ -3,6 +3,20 @@ from core.util.io import read_csv, write_csv, read_xlsx
 import pandas as pd
 import numpy as np
 
+capacities = [800, 2500, 2000, 800, 900, 1300, 700]
+
+def park_preprocess_lin() -> None:
+    """Process public charginc station data."""
+    original = read_csv("interim/trefor_park.csv")
+
+    for i, capacity in enumerate(capacities, 1):
+        # normalize based on capacity to get relative (%) values
+        original[f"Ladepark {i}"] = original[f"Ladepark {i}"] / capacity
+
+    original = original.drop(columns=["Dato", "Time"])
+
+    write_csv(original, "processed/park_timeseries_lin.csv")
+
 
 def park_cleaning() -> None:
     """Process public charging station data."""
@@ -31,7 +45,6 @@ def park_preprocess(backward: int, forward: int) -> None:
     )
     merged = np.array([], dtype=object).reshape(0, 2 + backward + forward)
 
-    capacities = [800, 2500, 2000, 800, 900, 1300, 700]
     for i, capacity in enumerate(capacities, 1):
         # normalize based on capacity to get relative (%) values
         original[f"Ladepark {i}"] = original[f"Ladepark {i}"] / capacity
@@ -107,15 +120,16 @@ def household_preprocessing() -> None:
     output_path = "processed/trefor_final.csv"
     write_csv(trefor_data, output_path)
 
-    print("Processed Trefor household data")
-
 
 def trefor(backward: int, forward: int) -> None:
     """Preprocess all Trefor data."""
     park_cleaning()
+    park_preprocess_lin()
     park_preprocess(backward, forward)
     household_cleaning()
     household_preprocessing()
+    print("Processed Trefor data")
+
 
 
 if __name__ == "__main__":
