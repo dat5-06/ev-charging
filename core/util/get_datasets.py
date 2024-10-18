@@ -5,6 +5,80 @@ import pandas as pd
 from core.util.io import read_csv
 
 
+def normalize_trefor_park(park_data: pd.DataFrame) -> pd.DataFrame:
+    capacities = [800, 2500, 2000, 800, 900, 1300, 700]
+    for i, capacity in enumerate(capacities, 1):
+        # normalize based on capacity to get relative (%) values
+        park_data[f"Ladepark {i}"] = park_data[f"Ladepark {i}"] / capacity
+
+    return park_data
+
+
+def get_park_dataset(
+    lookback: int, lookahead: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    x_train, x_val, x_test, y_train, y_val, y_test = (
+        np.empty((1, lookback, 1)),
+        np.empty((1, lookback, 1)),
+        np.empty((1, lookback, 1)),
+        np.empty((1, lookahead)),
+        np.empty((1, lookahead)),
+        np.empty((1, lookahead)),
+    )
+
+    for i in range(1, 7):
+        park = read_csv(f"processed/park_{i}.csv")
+        park = park.drop(["Date", "Time"], axis=1)
+        x, y = split_sequences(park.to_numpy(), park.to_numpy(), lookback, lookahead)
+
+        if i == 1:
+            x_train = x
+            y_train = y
+        elif i <= 4:
+            x_train = np.concatenate((x_train, x), axis=0)
+            y_train = np.concatenate((y_train, y), axis=0)
+        elif i == 5:
+            x_val = x
+            y_val = y
+        elif i == 6:
+            x_test = x
+            y_test = y
+
+    return (
+        x_train,
+        y_train,
+        x_val,
+        y_val,
+        x_test,
+        y_test,
+    )
+
+
+# split a multivariate sequence past, future samples (X and y)
+def split_sequences(features, targets, lookback, lookahead):
+    x, y = list(), list()  # instantiate X and y
+    for i in range(len(features)):
+        # find the end of the input, output sequence
+        end_ix = i + lookback
+        out_end_ix = end_ix + lookahead
+        # check if we are beyond the dataset
+        if out_end_ix > len(features):
+            break
+        # gather input and output of the pattern
+        seq_x, seq_y = features[i:end_ix], targets[end_ix:out_end_ix, -1]
+        x.append(seq_x), y.append(seq_y)
+        # if i == 1:
+        #     print(x)
+        #     print(type(x))
+        #     print(y)
+        #     print(type(y))
+    return np.array(x), np.array(y)
+
+
+# X_ss, y_mm = split_sequences(X_trans, y_trans, 100, 50)
+# print(X_ss.shape, y_mm.shape)
+
+
 def apply_sliding_window(
     timeseries: np.ndarray, n: int
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -38,7 +112,7 @@ def get_trefor_timeseries() -> np.ndarray:
 
 
 def get_timeseries_dataset(
-    timeseries: np.ndarray, n: int
+    timeseries: pd.DataFrame, n: int, m: int
 ) -> tuple[
     torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
 ]:

@@ -1,7 +1,5 @@
-from core.preprocessing.sliding_window import apply_sliding
 from core.util.io import read_csv, write_csv, read_xlsx
 import pandas as pd
-import numpy as np
 
 
 def park_cleaning() -> None:
@@ -20,45 +18,18 @@ def park_cleaning() -> None:
     write_csv(combined, "interim/trefor_park.csv")
 
 
-def park_preprocess(backward: int, forward: int) -> None:
+def park_preprocess() -> None:
     """Process public charginc station data."""
     original = read_csv("interim/trefor_park.csv")
 
-    columns = np.array(
-        ["Dato", "Time"]
-        + [f"t-{backward-i}" for i in range(backward)]
-        + [f"t+{i}" for i in range(forward)]
-    )
-    merged = np.array([], dtype=object).reshape(0, 2 + backward + forward)
+    for park_num in range(1, 7):
+        park = pd.DataFrame(original[["Dato", "Time", f"Ladepark {park_num}"]].dropna())
+        park_renamed = park.rename(
+            columns={f"Ladepark {park_num}": "Consumption", "Dato": "Date"}
+        )
+        write_csv(park_renamed, f"processed/park_{park_num}.csv")
 
-    capacities = [800, 2500, 2000, 800, 900, 1300, 700]
-    for i, capacity in enumerate(capacities, 1):
-        # normalize based on capacity to get relative (%) values
-        original[f"Ladepark {i}"] = original[f"Ladepark {i}"] / capacity
-
-        (x, y), index = apply_sliding(original[f"Ladepark {i}"], backward, forward)
-
-        # Save corresponding time
-        time = original[
-            original.index.isin(
-                range(backward + index, len(original.index) - forward + 1)
-            )
-        ][["Dato", "Time"]]
-        m = np.concatenate([time, x, y], axis=1)
-        if i <= len(capacities) - 2:
-            merged = np.concatenate([merged, m])
-        elif i == len(capacities) - 1:
-            write_csv(
-                pd.DataFrame(m, columns=columns),
-                "processed/park_testing.csv",
-            )
-        elif i == len(capacities):
-            write_csv(
-                pd.DataFrame(m, columns=columns),
-                "processed/park_validation.csv",
-            )
-
-    write_csv(pd.DataFrame(merged, columns=columns), "processed/park_training.csv")
+    print("Processed Trefor park data")
 
 
 def household_cleaning() -> None:
@@ -110,13 +81,13 @@ def household_preprocessing() -> None:
     print("Processed Trefor household data")
 
 
-def trefor(backward: int, forward: int) -> None:
+def trefor() -> None:
     """Preprocess all Trefor data."""
     park_cleaning()
-    park_preprocess(backward, forward)
+    park_preprocess()
     household_cleaning()
     household_preprocessing()
 
 
 if __name__ == "__main__":
-    trefor(24, 24)
+    trefor()
